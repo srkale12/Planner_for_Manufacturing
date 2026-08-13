@@ -1,0 +1,605 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>Manufacturing Planner — How the Data Flows</title>
+<meta name="description" content="A visual map of a production planning system: what data goes in, where the decision gets made, and where each result appears on screen.">
+<meta name="author" content="Saurabh Kale">
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     LINK PREVIEW (LinkedIn, Slack, WhatsApp, etc.)
+
+     EDIT THE TWO URLs BELOW once your GitHub Pages site is live.
+     They must be absolute (starting with https://), not relative —
+     LinkedIn ignores relative paths.
+     ══════════════════════════════════════════════════════════════════════ -->
+<meta property="og:type"        content="article">
+<meta property="og:site_name"   content="Manufacturing Planner">
+<meta property="og:title"       content="Manufacturing Planner — How the Data Flows">
+<meta property="og:description" content="A production planning system, drawn end to end: eight data sources in, one engine in the middle, six sets of results out.">
+<meta property="og:url"         content="https://srkale12.github.io/Planner_for_Manufacturing/">
+<meta property="og:image"       content="https://srkale12.github.io/Planner_for_Manufacturing/preview.png">
+<meta property="og:image:alt"   content="An hourglass-shaped data flow diagram of a production scheduling system.">
+<meta name="twitter:card"       content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔀</text></svg>">
+
+<style>
+  /* ── Minimal reset ─────────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; }
+  img, svg { max-width: 100%; }
+  h1, h2, h3, p, ul { margin: 0; }
+
+  /* ── Tokens ────────────────────────────────────────────────────────────── */
+  :root {
+    --paper:      #F2F4F6;
+    --surface:    #FFFFFF;
+    --surface-2:  #E9EDF1;
+    --ink:        #16202B;
+    --muted:      #55636F;
+    --structure:  #1E3A5F;
+    --brass:      #8C6516;
+    --brass-soft: #FAF3E4;
+    --brass-line: #C9A24A;
+    --line:       #D3DAE1;
+    --line-soft:  #E4E9EE;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:      #10161D;
+      --surface:    #18212B;
+      --surface-2:  #202B37;
+      --ink:        #E4EAF0;
+      --muted:      #96A5B3;
+      --structure:  #86AFD6;
+      --brass:      #D8B057;
+      --brass-soft: #241F12;
+      --brass-line: #C9A24A;
+      --line:       #2B3846;
+      --line-soft:  #222E3A;
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:      #10161D;
+    --surface:    #18212B;
+    --surface-2:  #202B37;
+    --ink:        #E4EAF0;
+    --muted:      #96A5B3;
+    --structure:  #86AFD6;
+    --brass:      #D8B057;
+    --brass-soft: #241F12;
+    --brass-line: #C9A24A;
+    --line:       #2B3846;
+    --line-soft:  #222E3A;
+  }
+
+  :root {
+    --f-display: "Helvetica Neue", "Segoe UI", system-ui, Arial, sans-serif;
+    --f-body: Charter, "Bitstream Charter", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+    --f-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--f-body);
+    font-size: 17px;
+    line-height: 1.6;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 1.2rem 5rem; }
+
+  header.top {
+    background: var(--structure);
+    padding: 3rem 1.2rem 2.4rem;
+    margin-bottom: 3rem;
+  }
+  header.top .inner { max-width: 1180px; margin: 0 auto; }
+  header.top .eyebrow {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.6);
+    border-top: 2px solid var(--brass-line);
+    padding-top: 0.42rem;
+    display: inline-block;
+  }
+  header.top h1 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    letter-spacing: -0.028em;
+    line-height: 1.03;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    text-wrap: balance;
+    color: #FFFFFF;
+    margin: 0.7rem 0 0;
+  }
+  header.top p {
+    color: rgba(255,255,255,0.82);
+    font-size: 1.12rem;
+    max-width: 52ch;
+    margin: 0.9rem 0 0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) header.top { background: #16283F; }
+  }
+  :root[data-theme="dark"] header.top { background: #16283F; }
+
+  h2 {
+    font-family: var(--f-display);
+    font-weight: 800;
+    letter-spacing: -0.022em;
+    font-size: 1.5rem;
+    line-height: 1.15;
+    color: var(--structure);
+    text-wrap: balance;
+    margin: 0 0 0.8rem;
+  }
+  .eyebrow-s {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-top: 2px solid var(--brass);
+    padding-top: 0.4rem;
+    display: inline-block;
+    margin-bottom: 0.5rem;
+  }
+  p { margin: 0 0 1rem; }
+  strong { font-weight: 700; }
+  section { margin-bottom: 3.4rem; }
+  .measure { max-width: 68ch; }
+
+  figure {
+    margin: 0 0 1.6rem;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1.4rem 1.2rem 1.1rem;
+  }
+  .scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  figure svg { display: block; width: 100%; min-width: 860px; height: auto; color: var(--ink); }
+  figure .scroll { margin-bottom: 1rem; }
+  figcaption {
+    font-size: 0.93rem;
+    line-height: 1.5;
+    color: var(--muted);
+    border-top: 1px solid var(--line-soft);
+    padding-top: 0.85rem;
+    max-width: 82ch;
+  }
+  figcaption b { color: var(--ink); }
+
+  .zones { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
+  .zone {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1.1rem 1.2rem;
+  }
+  .zone.key { border-color: var(--brass); background: var(--brass-soft); }
+  .zone h3 {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 0 0 0.5rem;
+  }
+  .zone.key h3 { color: var(--brass); }
+  .zone p { font-size: 0.96rem; line-height: 1.5; margin: 0; }
+
+  .about {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 1.5rem 1.6rem;
+    max-width: 76ch;
+  }
+  .about dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 0.55rem 1.4rem; }
+  .about dt {
+    font-family: var(--f-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-top: 0.25rem;
+    white-space: nowrap;
+  }
+  .about dd { margin: 0; font-size: 0.98rem; line-height: 1.5; }
+  @media (max-width: 560px) {
+    .about dl { grid-template-columns: 1fr; gap: 0.15rem 0; }
+    .about dd { margin-bottom: 0.8rem; }
+  }
+
+  code, .mono {
+    font-family: var(--f-mono);
+    font-size: 0.87em;
+    background: var(--surface-2);
+    padding: 0.08em 0.34em;
+    border-radius: 2px;
+  }
+
+  .footer {
+    font-family: var(--f-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    border-top: 1px solid var(--line);
+    padding-top: 1.1rem;
+  }
+
+  a { color: var(--brass); text-underline-offset: 2px; }
+  a:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+
+  /* ── SVG classes ───────────────────────────────────────────────────────── */
+  .b      { fill: var(--surface);   stroke: var(--structure); stroke-width: 1.2; }
+  .b-soft { fill: var(--surface-2); stroke: var(--line);      stroke-width: 1.2; }
+  .b-key  { fill: var(--surface);   stroke: var(--brass);     stroke-width: 1.5; }
+  .zone-magic { fill: var(--brass-soft); stroke: var(--brass); stroke-width: 2.5; }
+  .zone-app   { fill: var(--surface-2); stroke: var(--structure); stroke-width: 1.6; }
+  .t   { font-family: var(--f-display); font-size: 12.5px; font-weight: 700; fill: var(--ink); }
+  .t-s { font-family: var(--f-display); font-size: 11px;   font-weight: 700; fill: var(--ink); }
+  .s   { font-family: var(--f-body); font-size: 9.5px;  fill: var(--muted); }
+  .s-m { font-family: var(--f-body); font-size: 10.5px; fill: var(--muted); }
+  .lbl { font-family: var(--f-mono); font-size: 10px; fill: var(--muted); }
+  .cap { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.12em; fill: var(--muted); }
+  .cap-key { font-family: var(--f-mono); font-size: 10.5px; letter-spacing: 0.12em; fill: var(--brass); font-weight: 600; }
+  .ln  { stroke: var(--muted); stroke-width: 1.3; fill: none; }
+  .ln-key { stroke: var(--brass); stroke-width: 1.8; fill: none; }
+  .ln-dash { stroke: var(--brass); stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+  .num-key { font-family: var(--f-mono); font-size: 11px; font-weight: 600; fill: var(--brass); }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+  @media (max-width: 700px) { body { font-size: 16px; } header.top { padding: 2.2rem 1.1rem 1.8rem; margin-bottom: 2.2rem; } }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="inner">
+    <span class="eyebrow">Manufacturing Planner</span>
+    <h1>How the data flows</h1>
+    <p>
+      A production planning system, drawn end to end: where the numbers come
+      from, where the decision actually gets made, and where each result lands.
+    </p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section>
+    <p class="measure">
+      A factory makes hundreds of products on a handful of production lines. Every
+      week somebody has to decide what to make, on which line, on which day, and
+      how much &mdash; balancing three things that pull against each other: filling
+      customer orders, not freezing cash in inventory, and not losing hours to
+      washing lines between products.
+    </p>
+    <p class="measure">
+      This is the system that makes that decision. Everything narrows into one
+      place and fans back out: eight data sources enter at the top, get squeezed
+      through a single engine, and come out as six sets of results spread across
+      the screens a planner clicks. The shape is an hourglass, and
+      <strong>the waist is where all the value is.</strong>
+    </p>
+  </section>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1110 830" role="img" aria-label="Hourglass data flow diagram. Eight input tables — products, on-hand stock, safety stock, line rates, line capacity, changeover cost, customer orders and forecast — collect into a preparation step, then pass into the optimisation engine where four steps decide weekly quantities, sequence them into days, make them realistic and fill idle capacity. Six sets of results come out: the schedule, inventory outlook, capacity use, order shortages, changeover counts, and an audit snapshot. Five feed the app's screens; the audit snapshot goes to the ERP as proposals.">
+        <defs>
+          <marker id="f-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.7"/>
+          </marker>
+          <marker id="f-arb" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7.5" markerHeight="7.5" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="#8C6516"/>
+          </marker>
+        </defs>
+
+        <!-- BAND A — INPUTS -->
+        <text class="cap" x="40" y="30">WHAT GOES IN &nbsp;&middot;&nbsp; ALL OF IT TAGGED BY SCENARIO, SO ONE CUSTOMER'S DATA NEVER MIXES WITH ANOTHER'S</text>
+
+        <rect class="b-soft" x="40"   y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="99"   y="70" text-anchor="middle">Products</text>
+        <text class="s"   x="99"   y="88" text-anchor="middle">what you make</text>
+
+        <rect class="b-soft" x="170"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="229"  y="70" text-anchor="middle">On-hand stock</text>
+        <text class="s"   x="229"  y="88" text-anchor="middle">what's in the warehouse</text>
+
+        <rect class="b-soft" x="300"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="359"  y="70" text-anchor="middle">Safety stock</text>
+        <text class="s"   x="359"  y="88" text-anchor="middle">the floor you hold</text>
+
+        <rect class="b-soft" x="430"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="489"  y="70" text-anchor="middle">Line rates</text>
+        <text class="s"   x="489"  y="88" text-anchor="middle">units per shift</text>
+
+        <rect class="b-soft" x="560"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="619"  y="70" text-anchor="middle">Line capacity</text>
+        <text class="s"   x="619"  y="88" text-anchor="middle">hours available per day</text>
+
+        <rect class="b-soft" x="690"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="749"  y="70" text-anchor="middle">Changeover cost</text>
+        <text class="s"   x="749"  y="88" text-anchor="middle">cost to switch product</text>
+
+        <rect class="b-soft" x="820"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="879"  y="70" text-anchor="middle">Customer orders</text>
+        <text class="s"   x="879"  y="88" text-anchor="middle">quantities and due dates</text>
+
+        <rect class="b-soft" x="950"  y="46" width="118" height="58" rx="3"/>
+        <text class="t-s" x="1009" y="70" text-anchor="middle">Forecast</text>
+        <text class="s"   x="1009" y="88" text-anchor="middle">expected demand</text>
+
+        <!-- collector -->
+        <line class="ln" x1="99"   y1="104" x2="99"   y2="128"/>
+        <line class="ln" x1="229"  y1="104" x2="229"  y2="128"/>
+        <line class="ln" x1="359"  y1="104" x2="359"  y2="128"/>
+        <line class="ln" x1="489"  y1="104" x2="489"  y2="128"/>
+        <line class="ln" x1="619"  y1="104" x2="619"  y2="128"/>
+        <line class="ln" x1="749"  y1="104" x2="749"  y2="128"/>
+        <line class="ln" x1="879"  y1="104" x2="879"  y2="128"/>
+        <line class="ln" x1="1009" y1="104" x2="1009" y2="128"/>
+        <line class="ln" x1="99"   y1="128" x2="1009" y2="128"/>
+        <line class="ln" x1="555"  y1="128" x2="555"  y2="146" marker-end="url(#f-ar)"/>
+
+        <!-- BAND B — PREP -->
+        <rect class="b" x="285" y="150" width="540" height="52" rx="3"/>
+        <text class="t"   x="555" y="173" text-anchor="middle">Get it ready</text>
+        <text class="s-m" x="555" y="191" text-anchor="middle">turn orders into weekly demand &middot; turn capacity into available shifts &middot; lock the near term</text>
+
+        <line class="ln" x1="555" y1="202" x2="555" y2="228" marker-end="url(#f-ar)"/>
+
+        <!-- BAND C — THE ENGINE -->
+        <rect class="zone-magic" x="180" y="232" width="750" height="268" rx="4"/>
+        <text class="cap-key" x="200" y="256">WHERE THE DECISION IS MADE &nbsp;&middot;&nbsp; 60 TO 120 SECONDS</text>
+
+        <rect class="b-key" x="205" y="270" width="700" height="48" rx="3"/>
+        <text class="num-key" x="222" y="291">01</text>
+        <text class="t"   x="252" y="291">Decide how much to make each week</text>
+        <text class="s-m" x="252" y="308">weighing order fulfilment, safety-stock cover, inventory held and shifts used</text>
+
+        <rect class="b-key" x="205" y="326" width="700" height="48" rx="3"/>
+        <text class="num-key" x="222" y="347">02</text>
+        <text class="t"   x="252" y="347">Lay it out across the days</text>
+        <text class="s-m" x="252" y="364">order products so similar recipes run back to back and lines wash out less</text>
+
+        <rect class="b-key" x="205" y="382" width="700" height="48" rx="3"/>
+        <text class="num-key" x="222" y="403">03</text>
+        <text class="t"   x="252" y="403">Make it realistic</text>
+        <text class="s-m" x="252" y="420">whole batches only &middot; respect each day's limit &middot; keep product families together</text>
+
+        <rect class="b-key" x="205" y="438" width="700" height="48" rx="3"/>
+        <text class="num-key" x="222" y="459">04</text>
+        <text class="t"   x="252" y="459">Use up what's left</text>
+        <text class="s-m" x="252" y="476">any idle capacity goes to building buffer stock, up to each product's ceiling</text>
+
+        <!-- side input: tuning -->
+        <rect class="b-soft" x="950" y="330" width="145" height="58" rx="3"/>
+        <text class="t-s" x="1022" y="354" text-anchor="middle">Planner tuning</text>
+        <text class="s"   x="1022" y="372" text-anchor="middle">the rules you set</text>
+        <line class="ln" x1="948" y1="359" x2="936" y2="359" marker-end="url(#f-ar)"/>
+
+        <!-- feedback: agreed plan -->
+        <path class="ln-dash" d="M 36 567 L 16 567 L 16 400 L 174 400" marker-end="url(#f-arb)"/>
+        <text class="lbl" x="98" y="392" text-anchor="middle">the agreed plan</text>
+
+        <line class="ln" x1="555" y1="500" x2="555" y2="532" marker-end="url(#f-ar)"/>
+
+        <!-- BAND D — OUTPUTS -->
+        <text class="cap" x="40" y="527">WHAT COMES OUT</text>
+
+        <rect class="b" x="40"  y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="120" y="563" text-anchor="middle">The schedule</text>
+        <text class="s"   x="120" y="580" text-anchor="middle">line &middot; week &middot; day &middot; qty</text>
+
+        <rect class="b" x="212" y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="292" y="563" text-anchor="middle">Inventory outlook</text>
+        <text class="s"   x="292" y="580" text-anchor="middle">stock vs safety stock</text>
+
+        <rect class="b" x="384" y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="464" y="563" text-anchor="middle">Capacity use</text>
+        <text class="s"   x="464" y="580" text-anchor="middle">shifts used vs available</text>
+
+        <rect class="b" x="556" y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="636" y="563" text-anchor="middle">Order shortages</text>
+        <text class="s"   x="636" y="580" text-anchor="middle">which orders fall short</text>
+
+        <rect class="b" x="728" y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="808" y="563" text-anchor="middle">Changeover count</text>
+        <text class="s"   x="808" y="580" text-anchor="middle">washouts per line</text>
+
+        <rect class="b" x="900" y="540" width="160" height="54" rx="3"/>
+        <text class="t-s" x="980" y="563" text-anchor="middle">Audit + snapshot</text>
+        <text class="s"   x="980" y="580" text-anchor="middle">who ran it, what it said</text>
+
+        <line class="ln" x1="120" y1="594" x2="120" y2="636" marker-end="url(#f-ar)"/>
+        <line class="ln" x1="292" y1="594" x2="292" y2="636" marker-end="url(#f-ar)"/>
+        <line class="ln" x1="464" y1="594" x2="464" y2="636" marker-end="url(#f-ar)"/>
+        <line class="ln" x1="636" y1="594" x2="636" y2="636" marker-end="url(#f-ar)"/>
+        <line class="ln" x1="808" y1="594" x2="808" y2="636" marker-end="url(#f-ar)"/>
+        <line class="ln" x1="980" y1="594" x2="980" y2="686" marker-end="url(#f-ar)"/>
+
+        <!-- BAND E — WHERE YOU SEE IT -->
+        <text class="cap" x="40" y="622">WHERE YOU SEE IT</text>
+
+        <rect class="zone-app" x="40" y="640" width="800" height="150" rx="4"/>
+
+        <rect class="b" x="60" y="662" width="760" height="32" rx="2"/>
+        <text class="s-m" x="440" y="683" text-anchor="middle">KPI bar &nbsp;&middot;&nbsp; avg weeks of supply &nbsp;&middot;&nbsp; % above safety stock &nbsp;&middot;&nbsp; utilisation &nbsp;&middot;&nbsp; backorders &nbsp;&middot;&nbsp; changeovers</text>
+
+        <rect class="b" x="60"  y="712" width="145" height="52" rx="2"/>
+        <text class="t-s" x="132" y="735" text-anchor="middle">Schedule</text>
+        <text class="s"   x="132" y="752" text-anchor="middle">the Gantt chart</text>
+
+        <rect class="b" x="214" y="712" width="145" height="52" rx="2"/>
+        <text class="t-s" x="286" y="735" text-anchor="middle">Inventory</text>
+        <text class="s"   x="286" y="752" text-anchor="middle">stock &amp; shortages</text>
+
+        <rect class="b" x="368" y="712" width="145" height="52" rx="2"/>
+        <text class="t-s" x="440" y="735" text-anchor="middle">Capacity</text>
+        <text class="s"   x="440" y="752" text-anchor="middle">line utilisation</text>
+
+        <rect class="b" x="522" y="712" width="145" height="52" rx="2"/>
+        <text class="t-s" x="594" y="735" text-anchor="middle">Changeovers</text>
+        <text class="s"   x="594" y="752" text-anchor="middle">washouts by week</text>
+
+        <rect class="b" x="676" y="712" width="145" height="52" rx="2"/>
+        <text class="t-s" x="748" y="735" text-anchor="middle">Data &amp; Tuning</text>
+        <text class="s"   x="748" y="752" text-anchor="middle">inputs &amp; the rules</text>
+
+        <!-- ERP -->
+        <rect class="b-soft" x="890" y="686" width="180" height="68" rx="3"/>
+        <text class="t-s" x="980" y="712" text-anchor="middle">The ERP</text>
+        <text class="s"   x="980" y="729" text-anchor="middle">arrives as proposals</text>
+        <text class="s"   x="980" y="744" text-anchor="middle">a human approves</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>Eight tables in, six results out, one engine in the middle.</b> The dashed
+      line on the left is the loop that makes it an operating process rather than a
+      one-off calculation: once a planner accepts a plan, it becomes the anchor the
+      next run is measured against, so re-planning reads as an adjustment instead
+      of a rewrite.
+    </figcaption>
+  </figure>
+
+  <section>
+    <span class="eyebrow-s">Reading the diagram</span>
+    <h2>The three zones</h2>
+
+    <div class="zones">
+      <div class="zone">
+        <h3>Top &mdash; where data comes from</h3>
+        <p>
+          Eight tables, all living in one database, all tagged with a
+          <span class="mono">scenario</span> label. That label is what lets two
+          customers &mdash; or one planner running what-ifs &mdash; share the same
+          system without ever seeing each other's numbers.
+        </p>
+      </div>
+      <div class="zone key">
+        <h3>Middle &mdash; where the decision is made</h3>
+        <p>
+          The only place anything is actually decided. Four steps: set the
+          quantities, spread them across days, make the result physically
+          realistic, then use any capacity left over. Everything above it is
+          preparation; everything below it is presentation.
+        </p>
+      </div>
+      <div class="zone">
+        <h3>Bottom &mdash; where output is shown</h3>
+        <p>
+          Six sets of results fan out to five screens plus the KPI bar. One of
+          them &mdash; the audit snapshot &mdash; doesn't go to a screen at all. It
+          goes to the ERP as a proposal, and to the record that proves what was
+          recommended and by whom.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <span class="eyebrow-s">The same thing, concretely</span>
+    <h2>Follow one order through</h2>
+    <p class="measure">
+      If the hourglass is the map, this is a single journey across it &mdash; the
+      answer to &ldquo;but what actually happens to my order?&rdquo;
+    </p>
+  </section>
+
+  <figure>
+    <div class="scroll">
+      <svg viewBox="0 0 1110 200" role="img" aria-label="A single order traced through five steps: a customer order for 400 cases due 14 September becomes demand in week three, the engine decides to make 480 cases on line 2 on the Tuesday of week two, that lands in the schedule table, and appears as a bar on the Gantt chart with the order marked as filled.">
+        <defs>
+          <marker id="j-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" opacity="0.7"/>
+          </marker>
+        </defs>
+
+        <rect class="b-soft" x="20" y="46" width="185" height="90" rx="3"/>
+        <text class="lbl" x="36" y="68">GOES IN</text>
+        <text class="t-s" x="36" y="90">Order 4471</text>
+        <text class="s"   x="36" y="108">400 cases of SKU 1120</text>
+        <text class="s"   x="36" y="123">due 14 September</text>
+
+        <line class="ln" x1="207" y1="91" x2="238" y2="91" marker-end="url(#j-ar)"/>
+
+        <rect class="b" x="240" y="46" width="185" height="90" rx="3"/>
+        <text class="lbl" x="256" y="68">GETS READY</text>
+        <text class="t-s" x="256" y="90">Becomes demand</text>
+        <text class="s"   x="256" y="108">400 units land in week 3,</text>
+        <text class="s"   x="256" y="123">needed by Thursday</text>
+
+        <line class="ln" x1="427" y1="91" x2="458" y2="91" marker-end="url(#j-ar)"/>
+
+        <rect class="zone-magic" x="460" y="34" width="200" height="114" rx="3"/>
+        <text class="cap-key" x="476" y="56">THE DECISION</text>
+        <text class="t-s" x="476" y="80">Make 480 on Line 2</text>
+        <text class="s"   x="476" y="98">Tuesday of week 2 &mdash; early,</text>
+        <text class="s"   x="476" y="113">because it shares a recipe</text>
+        <text class="s"   x="476" y="128">with the run already there</text>
+
+        <line class="ln" x1="662" y1="91" x2="693" y2="91" marker-end="url(#j-ar)"/>
+
+        <rect class="b" x="695" y="46" width="185" height="90" rx="3"/>
+        <text class="lbl" x="711" y="68">COMES OUT</text>
+        <text class="t-s" x="711" y="90">A schedule row</text>
+        <text class="s"   x="711" y="108">Line 2 &middot; Wk 2 &middot; Tue &middot;</text>
+        <text class="s"   x="711" y="123">SKU 1120 &middot; 480 &middot; 1.4 shifts</text>
+
+        <line class="ln" x1="882" y1="91" x2="913" y2="91" marker-end="url(#j-ar)"/>
+
+        <rect class="b" x="915" y="46" width="175" height="90" rx="3"/>
+        <text class="lbl" x="931" y="68">YOU SEE</text>
+        <text class="t-s" x="931" y="90">A bar on the Gantt</text>
+        <text class="s"   x="931" y="108">and order 4471 shows</text>
+        <text class="s"   x="931" y="123">as Filled, not Short</text>
+      </svg>
+    </div>
+    <figcaption>
+      <b>Why 480 and not 400?</b> Because production runs in whole batches, and
+      because the engine found spare room next to a run using the same recipe
+      &mdash; making it a week early costs a little inventory and saves a full
+      washout. That trade is the entire point of the tool. Figures shown are
+      illustrative.
+    </figcaption>
+  </figure>
+
+  <section>
+    <span class="eyebrow-s">About</span>
+    <h2>What this is</h2>
+    <div class="about">
+      <dl>
+        <dt>The system</dt>
+        <dd>A production planning system for batch manufacturing. It builds a twelve-week plan across multiple lines, balancing order fulfilment, inventory investment, and changeover time.</dd>
+
+        <dt>What it weighs</dt>
+        <dd>Four goals that pull against each other: filling customer orders on time, holding enough safety stock, not tying up cash in excess inventory, and using shifts efficiently. It also sequences production day by day so compatible products run together and lines spend less time being washed out.</dd>
+
+        <dt>Built with</dt>
+        <dd>Python, FastAPI, React, and SQL. Ships three ways from one codebase: a hosted web app, a Windows desktop installer, and an ERP connector.</dd>
+
+        <dt>By design</dt>
+        <dd>It recommends; it never writes to a system of record. A planner reviews every proposal, the ERP creates the actual production orders, and every recommendation is logged with who ran it and what it said.</dd>
+      </dl>
+    </div>
+  </section>
+
+  <p class="footer">
+    Manufacturing Planner &nbsp;&middot;&nbsp; data flow &nbsp;&middot;&nbsp; Saurabh Kale
+  </p>
+
+</div>
+
+</body>
+</html>
