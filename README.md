@@ -1,9 +1,11 @@
 # Manufacturing Planner — data flow
 
-A one-page visual explanation of a production planning system: what data goes
-in, where the decision gets made, and where each result appears on screen.
+A production planning system for batch manufacturing, drawn end to end: what data
+goes in, where the decision gets made, and where each result appears on screen.
 
-**Live page:** https://srkale12.github.io/Planner_for_Manufacturing/
+**▶ [View the full interactive page](https://srkale12.github.io/Planner_for_Manufacturing/)**
+
+![How the data flows: eight input tables collect into a preparation step, pass through a four-step planning engine, and emerge as six sets of results feeding five screens plus an ERP](diagram.svg)
 
 ## What the system does
 
@@ -25,14 +27,27 @@ It recommends; it never writes to a system of record. A planner reviews every
 proposal, the ERP creates the actual production orders, and every recommendation
 is logged with who ran it and what it said.
 
+## Reading the diagram
+
+| Zone | What it shows |
+|---|---|
+| **Top** | Eight data sources, all in one database, each row tagged with a `scenario` label so two customers — or one planner running what-ifs — never see each other's numbers |
+| **Middle** | The only place a decision is made. Everything above it is preparation; everything below it is presentation |
+| **Bottom** | Six sets of results fanning out to five screens plus the KPI bar. One of them, the audit snapshot, goes to the ERP as a proposal rather than to a screen |
+
+The dashed line on the left is what makes this an operating process rather than a
+one-off calculation: once a planner accepts a plan, it becomes the anchor the
+next run is measured against, so re-planning reads as an adjustment instead of a
+rewrite.
+
 ## This repository
 
-Contains the explainer page only — a single self-contained HTML file with no
-build step, no dependencies, and no external requests. The planner source is
-not public.
+The explainer page only — one self-contained HTML file, no build step, no
+dependencies, no external requests. The planner source is not public.
 
 ```
-index.html     the page
+index.html     the full page
+diagram.svg    the data-flow diagram, standalone
 preview.png    link-preview image (optional; see below)
 ```
 
